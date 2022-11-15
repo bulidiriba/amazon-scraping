@@ -1,31 +1,62 @@
-const puppeteer = require("puppeteer");
-const xlsx = require("xlsx");
+const { google } = require("googleapis");
+const { readFileSync } = require("fs");
+const { launch } = require("puppeteer");
 
-const file = xlsx.readFile("../Ip Alert sample.xlsx");
+// spreadsheet id
+const spreadsheetId = "1-bUqSrF7GCaGE3flwVYolmYusQiXLEYW5Krl27vYyjU";
+const key_file = "./credentials.json";
+// const extracted_data = JSON.parse(readFileSync("./result.json"));
+const spreadSheetApiURL = "https://www.googleapis.com/auth/spreadsheets";
 
-let sites = []
+// const spreadsheetId = "1asVk57bGphji5AGmSEqTbSZaRVx6rM0Hlq5o5kNQCGA";
+// const key_file = "./keys.json";
 
-const sheets = file.SheetNames
-for (let i=0; i < 5; i++) {
-    const temp = xlsx.utils.sheet_to_json(file.Sheets[file.SheetNames[i]])
-    temp.forEach((res) => {
-        sites.push(res)
-    })
-}
+console.log("Reading data....");
 
-// console.log(sites);
-(async()=> {
+( async () => {
+    const auth = new google.auth.GoogleAuth({
+        keyFile: key_file,
+        scopes: spreadSheetApiURL,
+    });
+
+    // Auth client Object
+    const authClientObject = await auth.getClient();
+    // Google sheets instance
+
+    const googleSheetsInstance = google.sheets({ version: "v4", auth: authClientObject });
+
+    console.log("Reading data from the sheet....");
+    let sites = []
+    try {
+        const readData = await googleSheetsInstance.spreadsheets.values.get({
+            auth,
+            spreadsheetId,
+            range: "output!A:B"
+        });
+        let data = readData.data.values;
+        data.forEach((item) => {
+            sites.push(item)
+        });
+
+    } catch(error) {
+        console.log(`Error : ${error.message}`)
+    }
+
     var options = {
-        headless: true,
+        headless: false,
         args: [
             "--disable-extensions-except=~/.config/google-chrome/Default/Extensions/dcmindjgpiimpmkgmabhkflfaiimioea/2.39_0",
             "--load-extension=~/.config/google-chrome/Default/Extensions/dcmindjgpiimpmkgmabhkflfaiimioea/2.39_0",
         ]
     }
-    const browser = await puppeteer.launch(options);
+
+    const browser = await launch(options);
     const page = await browser.newPage();
     await page.waitForTimeout(3000);
 
+    
+
+    // Read from the spreadsheet
     try {
         await page.goto("https://www.google.com/", {
             waitUntil: "load",
@@ -34,10 +65,12 @@ for (let i=0; i < 5; i++) {
 
         await page.screenshot({ path: "screenshots/0-google.png"});
         let all_sites = [];
-        for (let i=0; i < 10; i++) {
+        
+        for (let i=1; i < 5; i++) {
             try {
-                console.log(`Checking for: ${sites[i]["Amazon ASIN URL"]}`)
-                await page.goto(sites[i]["Amazon ASIN URL"]);
+                console.log(`Checking for: ${sites[i][1]}`)
+                console.log(`sites: `, sites[i][1]);
+                await page.goto(sites[i][1]);
 
                 await page.waitForTimeout(10000);
                 await page.screenshot({ path: `screenshots/${i}-source-url.png`});
@@ -48,26 +81,13 @@ for (let i=0; i < 5; i++) {
                     return "NO"
                 });
                 console.log(`found: ${found}`);
-                all_sites.push({"Amazon ASIN URL": sites[i]["Amazon ASIN URL"], "IP Alert Found": found, "IP Alert LastCheck": ""})
+                all_sites.push({"Amazon ASIN URL": sites[i][1], "IP Alert Found": found, "IP Alert LastCheck": new Date().toLocaleString()})
             } catch(error) {
                 console.log(`Error Occured : ${error.message}`)
             }
         }
 
-        all_sites.flat()
-        console.log("Save to Excel...");
-        const worksheet = xlsx.utils.json_to_sheet(all_sites.flat())
-        const workbook = xlsx.utils.book_new();
-        xlsx.utils.book_append_sheet(workbook, worksheet, "Responses")
-        xlsx.writeFile(workbook, "../result.xlsx");
-
-        console.log("Successfuly written to excel file");
-
     } catch(error) {
-        console.error("------ERROR OCCURED---", error.message);
-
-    } finally {
-        await browser.close();
+        console.log(`Error : ${error.message}`);
     }
-
 })();
