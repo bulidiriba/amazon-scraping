@@ -25,32 +25,32 @@ console.log("Reading data....");
 
     const googleSheetsInstance = google.sheets({ version: "v4", auth: authClientObject });
 
+    const options = {
+        headless: false,
+        args: [
+            "--disable-extensions-except=~/.config/google-chrome/Default/Extensions/dcmindjgpiimpmkgmabhkflfaiimioea/2.39_0",
+            "--load-extension=~/.config/google-chrome/Default/Extensions/dcmindjgpiimpmkgmabhkflfaiimioea/2.39_0",
+        ]
+    }
+
+    const browser = await launch(options);
+    const page = await browser.newPage();
+
     console.log("Reading data from the sheet....");
     let sites = []
     try {
         const readData = await googleSheetsInstance.spreadsheets.values.get({
             auth,
             spreadsheetId,
-            range: "output!A:B"
+            range: "input!A:B"
         });
         const data = readData.data.values;
-        const data_len = data.length;
         data.forEach((item) => {
             sites.push(item)
         });
 
-        var options = {
-            headless: false,
-            args: [
-                "--disable-extensions-except=~/.config/google-chrome/Default/Extensions/dcmindjgpiimpmkgmabhkflfaiimioea/2.39_0",
-                "--load-extension=~/.config/google-chrome/Default/Extensions/dcmindjgpiimpmkgmabhkflfaiimioea/2.39_0",
-            ]
-        }
 
-        const browser = await launch(options);
-        const page = await browser.newPage();
         await page.waitForTimeout(3000);
-
         // Read from the spreadsheet
         await page.goto("https://www.google.com/", {
             waitUntil: "load",
@@ -59,8 +59,10 @@ console.log("Reading data....");
 
         await page.screenshot({ path: "screenshots/0-google.png"});
         let updated_data = [];
+        const start_index = 1;
+        const end_index = 5;
         
-        for (let i=1; i < 5; i++) {
+        for (let i=start_index; i < end_index; i++) {
             try {
                 console.log(`Checking for: ${sites[i][1]}`)
                 console.log(`sites: `, sites[i][1]);
@@ -75,49 +77,64 @@ console.log("Reading data....");
                     return "NO"
                 });
                 console.log(`found: ${found}`);
-                updated_data.push(sites[i][0], [sites[i][1], found, new Date().toLocaleString()])
+                updated_data.push([sites[i][0], sites[i][1], found, new Date().toLocaleString()])
             } catch(error) {
                 console.log(`Error Occured : ${error.message}`)
             }
         }
 
-        // Before updating first delete the existing data
-        const deleteRequest = {
-            auth: auth,
-            spreadsheetId: spreadsheetId,
-            resource: {
-                'requests': [
-                    {
-                        'deleteDimension': {
-                            'range': {
-                                'sheetId': 0,
-                                'dimension': 'ROWS',
-                                'startIndex': 1,
-                                'endIndex': data_len + 1
+        console.log("\n")
+        console.log("Deleting data.......");
+        try {
+            // Before updating first delete the existing data
+            const deleteRequest = {
+                auth: auth,
+                spreadsheetId: spreadsheetId,
+                resource: {
+                    'requests': [
+                        {
+                            'deleteDimension': {
+                                'range': {
+                                    'sheetId': 0,
+                                    'dimension': 'ROWS',
+                                    'startIndex': 1,
+                                    'endIndex': data.length + 1
+                                }
                             }
                         }
-                    }
-                ]
+                    ]
+                }
             }
+
+            googleSheetsInstance.spreadsheets.batchUpdate(deleteRequest, function(err, response) {
+                if (err) {
+                    console.log(err);
+                }
+                console.log("Deleted.");
+            });
+        } catch(error) {
+            console.log(`Error: ${error.message}`);
         }
 
-        googleSheetsInstance.spreadsheets.batchUpdate(deleteRequest, function(err, response) {
-            if (err) {
-                console.log(err);
-            }
-            console.log("Deleted.");
-        });
-
+        console.log("updated data: ", updated_data);
+        await page.waitForTimeout(10000);
+        console.log("\n")
+        console.log("Updating data........");
         // Write data into the google sheets
-        googleSheetsInstance.spreadsheets.values.append({
-            auth,
-            spreadsheetId,
-            range: "output!A:D",
-            valueInputOption: "USER_ENTERED",
-            resource: {
-                values: updated_data
-            },
-        });
+        try{
+            googleSheetsInstance.spreadsheets.values.append({
+                auth,
+                spreadsheetId,
+                range: "output!A:D",
+                valueInputOption: "USER_ENTERED",
+                resource: {
+                    values: updated_data
+                },
+            });
+            console.log("Google sheet succesfully updated.");
+        } catch(error) {
+            console.log(`Error: ${error.message}`);
+        }
 
     } catch(error) {
         console.log(`Error : ${error.message}`);
