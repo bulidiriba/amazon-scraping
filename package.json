@@ -6,17 +6,17 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/bulidiriba/amazon-scraping.git"
-  },
-  "author": "",
+  "repository": "git+https://github.com/bulidiriba/amazon-scraping.git",
+  "author": "bulidiriba <bulidiriba@gmail.com>",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/bulidiriba/amazon-scraping/issues"
   },
   "homepage": "https://github.com/bulidiriba/amazon-scraping#readme",
   "dependencies": {
+    "fs": "^0.0.1-security",
+    "googleapis": "^109.0.1",
+    "prettier": "^2.7.1",
     "puppeteer": "^19.2.2",
     "xlsx": "^0.18.5"
   }
