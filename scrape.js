@@ -1,15 +1,10 @@
 const { google } = require("googleapis");
-const { readFileSync } = require("fs");
 const { launch } = require("puppeteer");
 
 // spreadsheet id
 const spreadsheetId = "1-bUqSrF7GCaGE3flwVYolmYusQiXLEYW5Krl27vYyjU";
 const key_file = "./credentials.json";
-// const extracted_data = JSON.parse(readFileSync("./result.json"));
 const spreadSheetApiURL = "https://www.googleapis.com/auth/spreadsheets";
-
-// const spreadsheetId = "1asVk57bGphji5AGmSEqTbSZaRVx6rM0Hlq5o5kNQCGA";
-// const key_file = "./keys.json";
 
 console.log("Reading data....");
 
