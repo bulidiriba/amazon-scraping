@@ -9,6 +9,7 @@ const spreadSheetApiURL = "https://www.googleapis.com/auth/spreadsheets";
 console.log("\n...........Automated Scripts to check IP Alert Found for List of given Amazon URLs........");
 
 ( async () => {
+    const start_time = new Date();
     const auth = new google.auth.GoogleAuth({
         keyFile: key_file,
         scopes: spreadSheetApiURL,
@@ -59,8 +60,9 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
         await page.waitForTimeout(3000);
 
         let updated_data = [];
-        const start_index = 1;
-        const end_index = 5;
+        let error_data = [];
+        const start_index = 1001;
+        const end_index = 10000;
 
         console.log(`\nChecking IP Alert Found for Amazon URLs from row ${start_index} to ${end_index}`);
         await page.waitForTimeout(3000);
@@ -69,9 +71,6 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
             try {
                 console.log(`\nChecking for Amazon URL of row ${i} : ${sites[i][1]}`);
                 await page.goto(sites[i][1]);
-
-                await page.waitForTimeout(10000);
-                //await page.screenshot({ path: `screenshots/${i}-source-url.png`});
 
                 let found = await page.evaluate(()=> {
                     let ipAlertDialog = document.querySelector("#ip_alert_modal");
@@ -82,62 +81,52 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
                 const lastCheck = new Date().toLocaleString();
                 console.log(`IP Alert Last Check : ${lastCheck}`);
                 updated_data.push([sites[i][0], sites[i][1], found, lastCheck])
+                
+                if (i % 50 === 0) {
+                    //console.log("updated data: ", updated_data);
+                    await page.waitForTimeout(10000);
+                    console.log("\nWriting updated output data to google sheet........");
+                    // Write data into the google sheets
+                    try{
+                        googleSheetsInstance.spreadsheets.values.append({
+                            auth,
+                            spreadsheetId,
+                            range: "output!A:D",
+                            valueInputOption: "USER_ENTERED",
+                            resource: {
+                                values: updated_data
+                            },
+                        });
+
+                        googleSheetsInstance.spreadsheets.values.append({
+                            auth,
+                            spreadsheetId,
+                            range: "error!A:C",
+                            valueInputOption: "USER_ENTERED",
+                            resource: {
+                                values: error_data
+                            },
+                        });
+                        updated_data = [];
+                        error_data = [];
+                        console.log("\nGoogle sheet succesfully updated.");
+                    } catch(error) {
+                        console.log(`Error: ${error.message}`);
+                    }           
+                }
             } catch(error) {
                 console.log(`Error Occured : ${error.message}`)
+                error_data.push([i, sites[i][0], sites[i][1]]);
             }
         }
 
-        console.log("\nDeleting old data from google sheet.......");
-        try {
-            // Before updating first delete the existing data
-            const deleteRequest = {
-                auth: auth,
-                spreadsheetId: spreadsheetId,
-                resource: {
-                    'requests': [
-                        {
-                            'deleteDimension': {
-                                'range': {
-                                    'sheetId': 0,
-                                    'dimension': 'ROWS',
-                                    'startIndex': 1,
-                                    'endIndex': data.length + 1
-                                }
-                            }
-                        }
-                    ]
-                }
-            }
-
-            googleSheetsInstance.spreadsheets.batchUpdate(deleteRequest, function(err, response) {
-                if (err) {
-                    console.log(err);
-                }
-                console.log("Deleted.");
-            });
-        } catch(error) {
-            console.log(`Error: ${error.message}`);
-        }
-
-        //console.log("updated data: ", updated_data);
-        await page.waitForTimeout(10000);
-        console.log("\nWrite updated data to google sheet........");
-        // Write data into the google sheets
-        try{
-            googleSheetsInstance.spreadsheets.values.append({
-                auth,
-                spreadsheetId,
-                range: "output!A:D",
-                valueInputOption: "USER_ENTERED",
-                resource: {
-                    values: updated_data
-                },
-            });
-            console.log("\nGoogle sheet succesfully updated.");
-        } catch(error) {
-            console.log(`Error: ${error.message}`);
-        }
-
+        const end_time = new Date();
+        const numMillisecond = end_time - start_time;
+        const numSeconds = parseInt(numMillisecond / 1000);
+        //const numMinute = parseInt(numMillisecond / 60000);
+        //const numHours = parseInt(numSeconds / 3600);
+        const total_amazon_url = end_index - start_index;
+        console.log(`\n......Time taken to check all the given ${total_amazon_url} amazon URLs is : ${numSeconds} seconds }\n`);
     } catch(error) {
         console.log(`Error : ${error.message}`);
     } finally {
