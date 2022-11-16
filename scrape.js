@@ -51,12 +51,16 @@ console.log("Reading data....");
             waitUntil: "load",
             timeout: 0
         });
-
+        
         await page.screenshot({ path: "screenshots/0-google.png"});
+        console.log("Please provide your license key to extension....");
+        console.log("Waiting for 30 seconds...");
+        await page.waitForTimeout(30000);
+
         let updated_data = [];
         const start_index = 1;
-        const end_index = 5;
-        
+        const end_index = 10;
+                
         for (let i=start_index; i < end_index; i++) {
             try {
                 console.log(`Checking for: ${sites[i][1]}`)
@@ -64,7 +68,7 @@ console.log("Reading data....");
                 await page.goto(sites[i][1]);
 
                 await page.waitForTimeout(10000);
-                await page.screenshot({ path: `screenshots/${i}-source-url.png`});
+                //await page.screenshot({ path: `screenshots/${i}-source-url.png`});
 
                 let found = await page.evaluate(()=> {
                     let ipAlertDialog = document.querySelector("#ip_alert_modal");
@@ -111,7 +115,7 @@ console.log("Reading data....");
             console.log(`Error: ${error.message}`);
         }
 
-        console.log("updated data: ", updated_data);
+        //console.log("updated data: ", updated_data);
         await page.waitForTimeout(10000);
         console.log("\n")
         console.log("Updating data........");
