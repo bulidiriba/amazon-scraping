@@ -6,7 +6,7 @@ const spreadsheetId = "1-bUqSrF7GCaGE3flwVYolmYusQiXLEYW5Krl27vYyjU";
 const key_file = "./credentials.json";
 const spreadSheetApiURL = "https://www.googleapis.com/auth/spreadsheets";
 
-console.log("Reading data....");
+console.log("\n...........Automated Scripts to check IP Alert Found for List of given Amazon URLs........");
 
 ( async () => {
     const auth = new google.auth.GoogleAuth({
@@ -16,10 +16,8 @@ console.log("Reading data....");
 
     // Auth client Object
     const authClientObject = await auth.getClient();
-    // Google sheets instance
-
     const googleSheetsInstance = google.sheets({ version: "v4", auth: authClientObject });
-
+    console.log(`\nDefining the extension path from file....`);
     const options = {
         headless: false,
         args: [
@@ -28,12 +26,25 @@ console.log("Reading data....");
         ]
     }
 
+    console.log(`\nLaunching the browser...`);
     const browser = await launch(options);
     const page = await browser.newPage();
 
-    console.log("Reading data from the sheet....");
     let sites = []
     try {
+        await page.waitForTimeout(3000);
+        console.log(`\nOpening Google...`);
+        await page.goto("https://www.google.com/", {
+            waitUntil: "load",
+            timeout: 0
+        });
+
+        await page.screenshot({ path: "screenshots/0-google.png"});
+        console.log("\nPlease provide your license key to extension....");
+        console.log("Waiting for 30 seconds...");
+        await page.waitForTimeout(30000);
+
+        console.log("\nReading Amazon URLs from Google sheet....");
         const readData = await googleSheetsInstance.spreadsheets.values.get({
             auth,
             spreadsheetId,
@@ -43,28 +54,20 @@ console.log("Reading data....");
         data.forEach((item) => {
             sites.push(item)
         });
-
-
+        await page.waitForTimeout(5000);
+        console.log(`\nNumber of Amazon URLs fetched from Google sheet : ${data.length}`);
         await page.waitForTimeout(3000);
-        // Read from the spreadsheet
-        await page.goto("https://www.google.com/", {
-            waitUntil: "load",
-            timeout: 0
-        });
-        
-        await page.screenshot({ path: "screenshots/0-google.png"});
-        console.log("Please provide your license key to extension....");
-        console.log("Waiting for 30 seconds...");
-        await page.waitForTimeout(30000);
 
         let updated_data = [];
         const start_index = 1;
-        const end_index = 10;
-                
+        const end_index = 5;
+
+        console.log(`\nChecking IP Alert Found for Amazon URLs from row ${start_index} to ${end_index}`);
+        await page.waitForTimeout(3000);
+
         for (let i=start_index; i < end_index; i++) {
             try {
-                console.log(`Checking for: ${sites[i][1]}`)
-                console.log(`sites: `, sites[i][1]);
+                console.log(`\nChecking for Amazon URL of row ${i} : ${sites[i][1]}`);
                 await page.goto(sites[i][1]);
 
                 await page.waitForTimeout(10000);
@@ -75,15 +78,16 @@ console.log("Reading data....");
                     if (ipAlertDialog) return "YES"
                     return "NO"
                 });
-                console.log(`found: ${found}`);
-                updated_data.push([sites[i][0], sites[i][1], found, new Date().toLocaleString()])
+                console.log(`IP Alert Found : ${found}`);
+                const lastCheck = new Date().toLocaleString();
+                console.log(`IP Alert Last Check : ${lastCheck}`);
+                updated_data.push([sites[i][0], sites[i][1], found, lastCheck])
             } catch(error) {
                 console.log(`Error Occured : ${error.message}`)
             }
         }
 
-        console.log("\n")
-        console.log("Deleting data.......");
+        console.log("\nDeleting old data from google sheet.......");
         try {
             // Before updating first delete the existing data
             const deleteRequest = {
@@ -117,8 +121,7 @@ console.log("Reading data....");
 
         //console.log("updated data: ", updated_data);
         await page.waitForTimeout(10000);
-        console.log("\n")
-        console.log("Updating data........");
+        console.log("\nWrite updated data to google sheet........");
         // Write data into the google sheets
         try{
             googleSheetsInstance.spreadsheets.values.append({
@@ -130,7 +133,7 @@ console.log("Reading data....");
                     values: updated_data
                 },
             });
-            console.log("Google sheet succesfully updated.");
+            console.log("\nGoogle sheet succesfully updated.");
         } catch(error) {
             console.log(`Error: ${error.message}`);
         }
