@@ -77,6 +77,20 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
                     if (ipAlertDialog) return "YES"
                     return "NO"
                 });
+
+                // if not found, check weather the page is normal or captcha page
+                let captcha = await page.evaluate(() => {
+                    let captchaElt = document.querySelector("#captchacharacters");
+                    if (captchaElt) return true
+                    return false
+                })
+
+                if (captcha) {
+                    console.log(`\nThe Page is asking for captcha so browser is going to be closed....`);
+                    console.log(`\nPlease restart the scripts again`);
+                    await browser.close();
+                }
+
                 console.log(`IP Alert Found : ${found}`);
                 const lastCheck = new Date().toLocaleString();
                 console.log(`IP Alert Last Check : ${lastCheck}`);
