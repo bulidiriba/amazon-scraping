@@ -61,8 +61,8 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
 
         let updated_data = [];
         let error_data = [];
-        const start_index = 8701;
-        const end_index = 10000;
+        const start_index = 25351;
+        const end_index = 29510;
 
         console.log(`\nChecking IP Alert Found for Amazon URLs from row ${start_index} to ${end_index}`);
         await page.waitForTimeout(3000);
@@ -89,6 +89,7 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
                     console.log(`\nThe Page is asking for captcha so browser is going to be closed....`);
                     console.log(`\nPlease restart the scripts again`);
                     await browser.close();
+                    return
                 }
 
                 console.log(`IP Alert Found : ${found}`);
