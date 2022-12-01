@@ -7,9 +7,14 @@ Step to run
     
         node --version
 
-2. Create the google sheet api and replace the downloaded credentials in   `credentials.json`
+2. Create the google console api and replace the downloaded credentials in   `credentials.json`
+        
+        Here is a short and good instruction to create google console api, just watch only until 5min
 
-3. Create the spread sheet and replace the spread sheet name and other configs in `config.json`
+        https://www.youtube.com/watch?v=PFJNJQCU_lo&t=803s
+
+
+3. Get Excel sheet information and replace the spread sheet name and other configs in `config.json`
 
         a. spreadSheetId -- The ID of the spread sheet,  
 
