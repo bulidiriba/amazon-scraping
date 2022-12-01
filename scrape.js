@@ -1,10 +1,19 @@
 const { google } = require("googleapis");
 const { launch } = require("puppeteer");
+const { readFileSync } = require("fs");
 
-// spreadsheet id
-const spreadsheetId = "1-bUqSrF7GCaGE3flwVYolmYusQiXLEYW5Krl27vYyjU";
-const key_file = "./credentials.json";
-const spreadSheetApiURL = "https://www.googleapis.com/auth/spreadsheets";
+// get the config
+const config = JSON.parse(readFileSync("./config.json"));
+const spreadsheetId = config.spreadsheetId;
+const key_file = config.keyFile;
+const spreadSheetApiURL = config.spreadSheetApiURL;
+const inputSheet = config.inputSheet;
+const outputSheet = config.outputSheet;
+const errorSheet  = config.errorSheet;
+const startIndex = config.startIndex;
+const endIndex = config.endIndex;
+const saveAfter = config.saveAfter;
+const extensionPath = config.extensionPath;
 
 console.log("\n...........Automated Scripts to check IP Alert Found for List of given Amazon URLs........");
 
@@ -22,8 +31,8 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
     const options = {
         headless: false,
         args: [
-            "--disable-extensions-except=~/.config/google-chrome/Default/Extensions/dcmindjgpiimpmkgmabhkflfaiimioea/2.39_0",
-            "--load-extension=~/.config/google-chrome/Default/Extensions/dcmindjgpiimpmkgmabhkflfaiimioea/2.39_0",
+            `--disable-extensions-except=${extensionPath}`,
+            `--load-extension=${extensionPath}`,
         ]
     }
 
@@ -49,7 +58,7 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
         const readData = await googleSheetsInstance.spreadsheets.values.get({
             auth,
             spreadsheetId,
-            range: "input!A:B"
+            range: `${inputSheet}!A:B`
         });
         const data = readData.data.values;
         data.forEach((item) => {
@@ -61,16 +70,18 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
 
         let updated_data = [];
         let error_data = [];
-        const start_index = 25351;
-        const end_index = 29510;
 
-        console.log(`\nChecking IP Alert Found for Amazon URLs from row ${start_index} to ${end_index}`);
+
+        console.log(`\nChecking IP Alert Found for Amazon URLs from row ${startIndex} to ${endIndex}`);
         await page.waitForTimeout(3000);
 
-        for (let i=start_index; i < end_index; i++) {
+        for (let i=startIndex; i < endIndex; i++) {
             try {
                 console.log(`\nChecking for Amazon URL of row ${i} : ${sites[i][1]}`);
-                await page.goto(sites[i][1]);
+                await page.goto(sites[i][1], {
+                    waitUntil: "load",
+                    timeout: 0
+                });        
 
                 let found = await page.evaluate(()=> {
                     let ipAlertDialog = document.querySelector("#ip_alert_modal");
@@ -102,7 +113,7 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
                 error_data.push([i, sites[i][0], sites[i][1]]);
             }
 
-            if (i % 50 === 0) {
+            if (i % saveAfter === 0) {
                 //console.log("updated data: ", updated_data);
                 await page.waitForTimeout(10000);
                 console.log("\nWriting updated output data to google sheet........");
@@ -111,7 +122,7 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
                     googleSheetsInstance.spreadsheets.values.append({
                         auth,
                         spreadsheetId,
-                        range: "output!A:D",
+                        range: `${outputSheet}!A:D`,
                         valueInputOption: "USER_ENTERED",
                         resource: {
                             values: updated_data
@@ -121,7 +132,7 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
                     googleSheetsInstance.spreadsheets.values.append({
                         auth,
                         spreadsheetId,
-                        range: "error!A:C",
+                        range: `${errorSheet}!A:C`,
                         valueInputOption: "USER_ENTERED",
                         resource: {
                             values: error_data
@@ -142,7 +153,7 @@ console.log("\n...........Automated Scripts to check IP Alert Found for List of 
         const numSeconds = parseInt(numMillisecond / 1000);
         //const numMinute = parseInt(numMillisecond / 60000);
         //const numHours = parseInt(numSeconds / 3600);
-        const total_amazon_url = end_index - start_index;
+        const total_amazon_url = endIndex - startIndex;
         console.log(`\n......Time taken to check all the given ${total_amazon_url} amazon URLs is : ${numSeconds} seconds }\n`);
     } catch(error) {
         console.log(`Error : ${error.message}`);

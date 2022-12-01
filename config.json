@@ -1,0 +1,12 @@
+{
+    "spreadsheetId": "1-bUqSrF7GCaGE3flwVYolmYusQiXLEYW5Krl27vYyjU",
+    "keyFile": "./credentials.json", 
+    "spreadSheetApiURL": "https://www.googleapis.com/auth/spreadsheets",
+    "inputSheet": "input",
+    "outputSheet": "output2",
+    "errorSheet": "error",
+    "startIndex": 1,
+    "endIndex": 50,
+    "saveAfter": 10,
+    "extensionPath":"~/.config/google-chrome/Default/Extensions/dcmindjgpiimpmkgmabhkflfaiimioea/2.39_2"
+}
